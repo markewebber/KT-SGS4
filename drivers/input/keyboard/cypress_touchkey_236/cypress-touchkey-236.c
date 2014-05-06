@@ -11,6 +11,7 @@
 
 //#define SEC_TOUCHKEY_DEBUG
 
+#include <linux/cpufreq_kt.h>
 #include <linux/module.h>
 #include <linux/input.h>
 #include <linux/init.h>
@@ -163,13 +164,6 @@ static struct pm_gpio tkey_sleep_int = {
 	.function	= PM_GPIO_FUNC_NORMAL,
 	.inv_int_pol	= 0,
 };
-
-extern void boostpulse_relay_kt(void);
-static bool kt_is_active_benabled = false;
-void kt_is_active_benabled_touchkey(bool val)
-{
-	kt_is_active_benabled = val;
-}
 
 static void cypress_int_gpio_setting(bool value)
 {
@@ -479,7 +473,7 @@ static ssize_t brightness_level_show(struct device *dev,
 {
 	int count;
 
-	count = snprintf(buf, sizeof(buf), "%d\n", vol_mv_level);
+	count = sprintf(buf, "%d\n", vol_mv_level);
 
 	printk(KERN_DEBUG "[TouchKey] Touch LED voltage = %d\n", vol_mv_level);
 	return count;
@@ -789,9 +783,9 @@ static irqreturn_t cypress_touchkey_interrupt(int irq, void *dev_id)
 	//printk(KERN_ERR
 	//	"[TouchKey]press=%d, code=%d\n", press, code);
 	
-	if (kt_is_active_benabled && press == 1 && (info->keycode[code] == 158 || info->keycode[code] == 139))
+	if (ktoonservative_is_active && press == 1 && (info->keycode[code] == 158 || info->keycode[code] == 139))
 	{
-		boostpulse_relay_kt();
+		ktoonservative_boostpulse(true);
 		//pr_alert("KEY_PRESS: %d-%d\n", info->keycode[code], press);
 	}
 	
@@ -1464,7 +1458,7 @@ static int __devinit cypress_touchkey_probe(struct i2c_client *client,
 	info->power_onoff = pdata->power_onoff;
 	info->touchkey_update_status = 0;
 	memcpy(info->keycode, pdata->touchkey_keycode,
-			sizeof(pdata->touchkey_keycode));
+			4);
 	snprintf(info->phys, sizeof(info->phys),
 			"%s/input0", dev_name(&client->dev));
 	input_dev->name = "sec_touchkey";

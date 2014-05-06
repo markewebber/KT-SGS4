@@ -11,6 +11,7 @@
  *
  */
 
+#include <linux/cpufreq_kt.h>
 #include <linux/init.h>
 #include <linux/ioport.h>
 #include <linux/gpio.h>
@@ -29,16 +30,10 @@
 #include "board-8064.h"
 
 //KT Specifics
-static bool ktoonservative_is_activef = false;
 extern void set_screen_on_off_mhz(bool onoff);
-extern void set_screen_on_off_flag(bool onoff);
-extern void set_screen_on_off_flaghk(bool onoff);
-extern void screen_is_on_relay_kt(bool state);
-
-void ktoonservative_is_activebd(bool val)
-{
-	ktoonservative_is_activef = val;
-}
+extern void check_prox_value_trig(bool trig);
+extern void set_screen_synaptic_on(void);
+extern void set_screen_synaptic_off(void);
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #if defined(CONFIG_FB_MSM_MIPI_SAMSUNG_OLED_VIDEO_HD_PT_PANEL)
@@ -928,11 +923,11 @@ static int mipi_panel_power_oled(int enable)
 			return -ENODEV;
 		}
 #endif
+		set_screen_synaptic_on();
 		set_screen_on_off_mhz(true);
-		set_screen_on_off_flag(true);
-		set_screen_on_off_flaghk(true);
-		if (ktoonservative_is_activef)
-			screen_is_on_relay_kt(true);
+		check_prox_value_trig(false);
+		if (ktoonservative_is_active)
+			ktoonservative_screen_is_on(true);
 	} else {
 		pr_info("[lcd] PANEL OFF\n");
 
@@ -962,12 +957,11 @@ static int mipi_panel_power_oled(int enable)
 			pr_err("disable reg_L30 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
+		set_screen_synaptic_off();
 		set_screen_on_off_mhz(false);
-		set_screen_on_off_flag(false);
-		set_screen_on_off_flaghk(false);
-		if (ktoonservative_is_activef)
-			screen_is_on_relay_kt(false);
-		//pr_alert("KT_RELAY_CALL  FROM SCREEN\n");
+		check_prox_value_trig(true);
+		if (ktoonservative_is_active)
+			ktoonservative_screen_is_on(false);
 	}
 
 	return rc;
